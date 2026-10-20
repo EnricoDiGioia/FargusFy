@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>FargusFy</title>
+    <meta name="description" content="A trilha sonora dos personagens de Fargus" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/svg+xml" href="./icons/favicon.svg" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="FargusFy" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    <script>
+      // Aplica o tema do FargusGram antes de desenhar (evita "piscar")
+      try {
+        var a = JSON.parse(localStorage.getItem('fg-appearance') || 'null');
+        var id = (a && a.active) || localStorage.getItem('fg-theme') || 'auto';
+        if (id === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        else if (id !== 'auto') document.documentElement.setAttribute('data-theme', 'dark');
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
