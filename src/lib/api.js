@@ -2,7 +2,7 @@
 import { supabase } from './supabase';
 
 const CHAR = 'id, handle, name, avatar_path, is_verified';
-const PLAYLIST = `id, character_id, name, description, is_public, track_count, duration_ms, covers, created_at, updated_at, character:characters(${CHAR})`;
+const PLAYLIST = `id, character_id, name, description, is_public, track_count, duration_ms, covers, created_at, updated_at, character:characters!fy_playlists_character_id_fkey(${CHAR})`;
 const TRACK_COLS = 'track_id, title, artist, album, album_id, artwork, duration_ms, explicit';
 
 function unwrap({ data, error }) {
@@ -129,7 +129,7 @@ export async function moveTrackRow(rowId, position) {
 // --------------------------------------------------------------------
 export async function followedPlaylists(characterId) {
   const rows = unwrap(
-    await supabase.from('fy_playlist_follows').select(`created_at, playlist:fy_playlists(${PLAYLIST})`).eq('character_id', characterId).order('created_at', { ascending: false })
+    await supabase.from('fy_playlist_follows').select(`created_at, playlist:fy_playlists!fy_playlist_follows_playlist_id_fkey(${PLAYLIST})`).eq('character_id', characterId).order('created_at', { ascending: false })
   );
   return rows.map((r) => r.playlist).filter(Boolean);
 }
@@ -219,7 +219,7 @@ export async function clearNowPlaying(characterId) {
 
 export async function nowPlayingList(limit = 20) {
   const rows = unwrap(
-    await supabase.from('fy_now_playing').select(`updated_at, track_id, title, artist, album_id, artwork, character:characters(${CHAR})`).order('updated_at', { ascending: false }).limit(limit)
+    await supabase.from('fy_now_playing').select(`updated_at, track_id, title, artist, album_id, artwork, character:characters!fy_now_playing_character_id_fkey(${CHAR})`).order('updated_at', { ascending: false }).limit(limit)
   );
   return rows.filter((r) => r.character).map((r) => ({ character: r.character, at: r.updated_at, track: rowToTrack(r) }));
 }
