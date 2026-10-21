@@ -9,7 +9,7 @@ Usa a mesma conta, os mesmos personagens e o mesmo tema do FargusGram. Como os d
 - **Playlists dos personagens:** criar, editar, apagar, deixar pública ou privada, reordenar e remover músicas, copiar músicas para outra playlist
 - **Músicas curtidas** de cada personagem
 - **Seguir playlists** de outros personagens
-- **"Ouvindo agora":** aparece no início e no perfil musical do personagem; pode ser automático (depois de 20 s tocando) ou escolhido à mão
+- **"Ouvindo agora":** aparece no início e no perfil musical do personagem; pode ser automático (poucos segundos depois que a música começa) ou escolhido à mão, e aparece também no perfil do FargusGram
 - **Busca no catálogo do Spotify** (músicas, álbuns, artistas) e nos personagens e playlists de Fargus
 - **Páginas de álbum, artista e perfil do personagem**
 - **Fila** com "tocar em seguida", "adicionar à fila", aleatório e repetir; a fila continua de onde parou ao reabrir o app

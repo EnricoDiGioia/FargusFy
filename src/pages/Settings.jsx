@@ -135,7 +135,7 @@ export default function Settings() {
           />
           <span>Mostrar no perfil de @{active?.handle} a música que estou ouvindo</span>
         </label>
-        <p className="muted">Atualiza depois de 20 segundos tocando, uma vez por música.</p>
+        <p className="muted">Atualiza poucos segundos depois que cada música começa e renova a cada 5 minutos enquanto toca.</p>
         {active && (
           <Button
             variant="ghost"

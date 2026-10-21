@@ -23,26 +23,33 @@ import { current, getState, livePosition, primeRestoredTrack, usePlayer } from '
 import * as api from './lib/api';
 import { FARGUSGRAM_URL } from './config';
 
-// Mostra no perfil a música que está tocando (depois de 20 s, uma vez por música)
+// "Ouvindo" no FargusGram: grava a música assim que ela começa a tocar de verdade
+// (3 s, para não gravar cada música pulada) e renova a cada 5 min enquanto toca.
+// O FargusGram mostra "Ouvindo" enquanto o registro tem menos de 6 min.
+const NOW_START_MS = 3000;
+const NOW_RENEW_MS = 5 * 60 * 1000;
 function AutoNowPlaying() {
   const player = usePlayer();
   const { active } = useSession();
-  const sent = useRef(null);
+  const sent = useRef({ key: null, at: 0 });
   const t = current(player);
   useEffect(() => {
     if (!t || !active || player.isPaused || !autoNowEnabled()) return;
     const key = `${active.id}:${t.id}`;
-    if (sent.current === key) return;
-    const timer = setInterval(() => {
+    const startedAt = Date.now();
+    const tick = () => {
       const s = getState();
       if (current(s)?.id !== t.id || s.isPaused) return;
-      if (livePosition(s) < 20000 && (s.duration || 0) > 25000) return;
-      sent.current = key;
-      clearInterval(timer);
+      const fresh = sent.current.key === key && Date.now() - sent.current.at < NOW_RENEW_MS;
+      if (fresh) return;
+      // música nova: espera tocar uns segundos (a posição pode vir zerada no embed)
+      if (sent.current.key !== key && Date.now() - startedAt < NOW_START_MS && livePosition(s) < NOW_START_MS) return;
+      sent.current = { key, at: Date.now() };
       api.setNowPlaying(active.id, t).catch(() => {
-        sent.current = null;
+        sent.current = { key: null, at: 0 };
       });
-    }, 4000);
+    };
+    const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [t?.id, active?.id, player.isPaused]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
