@@ -13,6 +13,7 @@ export function LibraryProvider({ children }) {
   const toast = useToast();
   const [mine, setMine] = useState(null);
   const [followed, setFollowed] = useState(null);
+  const [collabs, setCollabs] = useState(null); // playlists em que colabora
   const [saved, setSavedIds] = useState(() => new Set());
   const [error, setError] = useState(null);
   const charId = active?.id ?? null;
@@ -20,21 +21,30 @@ export function LibraryProvider({ children }) {
   const refresh = useCallback(async () => {
     if (!charId) return;
     try {
-      const [a, b, c] = await Promise.all([api.playlistsOf(charId), api.followedPlaylists(charId), api.savedIds(charId)]);
+      const [a, b, c, d] = await Promise.all([
+        api.playlistsOf(charId),
+        api.followedPlaylists(charId),
+        api.savedIds(charId),
+        // banco sem a atualização das colaborativas: segue sem elas
+        api.collabPlaylistsOf(charId).catch(() => []),
+      ]);
       setMine(a);
       setFollowed(b);
       setSavedIds(c);
+      setCollabs(d);
       setError(null);
     } catch (e) {
       setError(api.errorMessage(e));
       setMine([]);
       setFollowed([]);
+      setCollabs([]);
     }
   }, [charId]);
 
   useEffect(() => {
     setMine(null);
     setFollowed(null);
+    setCollabs(null);
     setSavedIds(new Set());
     refresh();
   }, [refresh]);
@@ -69,9 +79,12 @@ export function LibraryProvider({ children }) {
     setMine((list) => (list ? list.map((x) => (x.id === p.id ? { ...x, ...p } : x)) : list));
   }, []);
 
+  // onde o personagem pode adicionar músicas: as dele e as colaborativas
+  const editable = useMemo(() => [...(mine ?? []), ...(collabs ?? [])], [mine, collabs]);
+
   const value = useMemo(
-    () => ({ mine, followed, saved, error, refresh, toggleSaved, patchPlaylist, isSaved: (id) => saved.has(id) }),
-    [mine, followed, saved, error, refresh, toggleSaved, patchPlaylist]
+    () => ({ mine, followed, collabs, editable, saved, error, refresh, toggleSaved, patchPlaylist, isSaved: (id) => saved.has(id) }),
+    [mine, followed, collabs, editable, saved, error, refresh, toggleSaved, patchPlaylist]
   );
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;
 }

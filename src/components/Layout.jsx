@@ -100,7 +100,7 @@ function Sidebar() {
   const [creating, setCreating] = useState(false);
   const player = usePlayer();
   const playingCtx = player.context;
-  const items = [...(lib.mine ?? []), ...(lib.followed ?? [])];
+  const items = [...(lib.mine ?? []), ...(lib.collabs ?? []), ...(lib.followed ?? [])];
 
   return (
     <aside className="sidebar" aria-label="Navegação">
@@ -141,7 +141,9 @@ function Sidebar() {
               <Mosaic covers={p.covers} seed={p.id} size={48} />
               <span className="lib-row__text">
                 <strong className={playingCtx?.type === 'playlist' && playingCtx.id === p.id ? 'accent' : ''}>{p.name}</strong>
-                <small>Playlist · {p.character_id === active?.id ? `@${active.handle}` : `@${p.character?.handle ?? ''}`}</small>
+                <small>
+                  {lib.collabs?.some((x) => x.id === p.id) ? 'Colaborativa' : 'Playlist'} · {p.character_id === active?.id ? `@${active.handle}` : `@${p.character?.handle ?? ''}`}
+                </small>
               </span>
             </NavLink>
           ))}

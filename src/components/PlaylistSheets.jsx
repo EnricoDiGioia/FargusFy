@@ -84,7 +84,7 @@ export function AddToPlaylist({ open, onClose, tracks }) {
   const toast = useToast();
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState(null);
-  const list = lib.mine ?? [];
+  const list = lib.editable;
 
   const add = async (p) => {
     setBusyId(p.id);
@@ -117,7 +117,10 @@ export function AddToPlaylist({ open, onClose, tracks }) {
           <Mosaic covers={p.covers} seed={p.id} size={48} />
           <span className="pick-row__text">
             <strong>{p.name}</strong>
-            <small className="muted">{plural(p.track_count, 'música', 'músicas')}</small>
+            <small className="muted">
+              {plural(p.track_count, 'música', 'músicas')}
+              {p.character_id !== active?.id && p.character ? ` · colaborativa de @${p.character.handle}` : ''}
+            </small>
           </span>
           {busyId === p.id && <span className="muted">…</span>}
         </button>

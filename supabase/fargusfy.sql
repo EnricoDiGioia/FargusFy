@@ -16,6 +16,11 @@
 --    - 100 playlists por personagem
 --    - 500 músicas por playlist
 --    - 2.000 músicas curtidas por personagem
+--    - 10 colaboradores por playlist
+--
+--  Atualizações: quando o FargusFy ganhar novidades no banco (como as
+--  playlists colaborativas, em outubro/2026), basta rodar este arquivo de
+--  novo. Ele não apaga nada que já existe.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -83,6 +88,16 @@ create table if not exists public.fy_playlist_follows (
 );
 create index if not exists fy_playlist_follows_playlist_idx on public.fy_playlist_follows (playlist_id);
 
+-- Playlists colaborativas: personagens convidados pelo dono podem adicionar,
+-- remover e reordenar músicas (até 10 colaboradores por playlist)
+create table if not exists public.fy_playlist_collaborators (
+  playlist_id  uuid not null references public.fy_playlists (id) on delete cascade,
+  character_id uuid not null references public.characters (id) on delete cascade,
+  created_at   timestamptz not null default now(),
+  primary key (playlist_id, character_id)
+);
+create index if not exists fy_playlist_collaborators_character_idx on public.fy_playlist_collaborators (character_id);
+
 -- "Ouvindo agora" de cada personagem (uma linha por personagem, sobrescrita)
 create table if not exists public.fy_now_playing (
   character_id uuid primary key references public.characters (id) on delete cascade,
@@ -109,6 +124,13 @@ begin
     if (select count(*) from public.fy_playlist_tracks t where t.playlist_id = new.playlist_id) >= 500 then
       raise exception 'Limite de 500 músicas por playlist';
     end if;
+  elsif tg_table_name = 'fy_playlist_collaborators' then
+    if exists (select 1 from public.fy_playlists p where p.id = new.playlist_id and p.character_id = new.character_id) then
+      raise exception 'O dono já pode editar a playlist';
+    end if;
+    if (select count(*) from public.fy_playlist_collaborators c where c.playlist_id = new.playlist_id) >= 10 then
+      raise exception 'Limite de 10 colaboradores por playlist';
+    end if;
   elsif tg_table_name = 'fy_saved_tracks' then
     if (select count(*) from public.fy_saved_tracks s where s.character_id = new.character_id) >= 2000 then
       raise exception 'Limite de 2.000 músicas curtidas por personagem';
@@ -123,6 +145,9 @@ create trigger fy_playlists_limit before insert on public.fy_playlists
   for each row execute function public.fy_check_limits();
 drop trigger if exists fy_playlist_tracks_limit on public.fy_playlist_tracks;
 create trigger fy_playlist_tracks_limit before insert on public.fy_playlist_tracks
+  for each row execute function public.fy_check_limits();
+drop trigger if exists fy_collaborators_limit on public.fy_playlist_collaborators;
+create trigger fy_collaborators_limit before insert on public.fy_playlist_collaborators
   for each row execute function public.fy_check_limits();
 drop trigger if exists fy_saved_tracks_limit on public.fy_saved_tracks;
 create trigger fy_saved_tracks_limit before insert on public.fy_saved_tracks
@@ -195,16 +220,7 @@ alter table public.fy_playlist_tracks  enable row level security;
 alter table public.fy_saved_tracks     enable row level security;
 alter table public.fy_playlist_follows enable row level security;
 alter table public.fy_now_playing      enable row level security;
-
-create or replace function public.fy_can_see_playlist(p_playlist uuid)
-returns boolean language sql stable security definer set search_path = '' as $$
-  select exists (
-    select 1 from public.fy_playlists p
-    where p.id = p_playlist
-      and public.is_member()
-      and (p.is_public or public.owns_character(p.character_id) or public.is_admin())
-  );
-$$;
+alter table public.fy_playlist_collaborators enable row level security;
 
 create or replace function public.fy_owns_playlist(p_playlist uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
@@ -214,9 +230,34 @@ returns boolean language sql stable security definer set search_path = '' as $$
   );
 $$;
 
+-- o jogador logado tem um personagem colaborador desta playlist?
+create or replace function public.fy_is_collaborator(p_playlist uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.fy_playlist_collaborators c
+    where c.playlist_id = p_playlist and public.owns_character(c.character_id)
+  );
+$$;
+
+create or replace function public.fy_can_see_playlist(p_playlist uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.fy_playlists p
+    where p.id = p_playlist
+      and public.is_member()
+      and (p.is_public or public.owns_character(p.character_id) or public.is_admin() or public.fy_is_collaborator(p.id))
+  );
+$$;
+
+-- pode mexer nas músicas: o dono ou um colaborador
+create or replace function public.fy_can_edit_playlist(p_playlist uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select public.fy_owns_playlist(p_playlist) or public.fy_is_collaborator(p_playlist);
+$$;
+
 drop policy if exists fy_playlists_select on public.fy_playlists;
 create policy fy_playlists_select on public.fy_playlists for select to authenticated
-  using ((select public.is_member()) and (is_public or public.owns_character(character_id) or (select public.is_admin())));
+  using ((select public.is_member()) and (is_public or public.owns_character(character_id) or (select public.is_admin()) or public.fy_is_collaborator(id)));
 drop policy if exists fy_playlists_insert on public.fy_playlists;
 create policy fy_playlists_insert on public.fy_playlists for insert to authenticated
   with check (public.owns_character(character_id) and track_count = 0 and duration_ms = 0 and covers = '{}');
@@ -236,13 +277,24 @@ create policy fy_tracks_select on public.fy_playlist_tracks for select to authen
   using (public.fy_can_see_playlist(playlist_id));
 drop policy if exists fy_tracks_insert on public.fy_playlist_tracks;
 create policy fy_tracks_insert on public.fy_playlist_tracks for insert to authenticated
-  with check (public.fy_owns_playlist(playlist_id) and (added_by is null or public.owns_character(added_by)));
+  with check (public.fy_can_edit_playlist(playlist_id) and (added_by is null or public.owns_character(added_by)));
 drop policy if exists fy_tracks_update on public.fy_playlist_tracks;
 create policy fy_tracks_update on public.fy_playlist_tracks for update to authenticated
-  using (public.fy_owns_playlist(playlist_id)) with check (public.fy_owns_playlist(playlist_id));
+  using (public.fy_can_edit_playlist(playlist_id)) with check (public.fy_can_edit_playlist(playlist_id));
 drop policy if exists fy_tracks_delete on public.fy_playlist_tracks;
 create policy fy_tracks_delete on public.fy_playlist_tracks for delete to authenticated
-  using (public.fy_owns_playlist(playlist_id) or (select public.is_admin()));
+  using (public.fy_can_edit_playlist(playlist_id) or (select public.is_admin()));
+
+-- colaboradores: o dono convida e tira; o colaborador pode sair sozinho
+drop policy if exists fy_collab_select on public.fy_playlist_collaborators;
+create policy fy_collab_select on public.fy_playlist_collaborators for select to authenticated
+  using (public.fy_can_see_playlist(playlist_id));
+drop policy if exists fy_collab_insert on public.fy_playlist_collaborators;
+create policy fy_collab_insert on public.fy_playlist_collaborators for insert to authenticated
+  with check (public.fy_owns_playlist(playlist_id));
+drop policy if exists fy_collab_delete on public.fy_playlist_collaborators;
+create policy fy_collab_delete on public.fy_playlist_collaborators for delete to authenticated
+  using (public.fy_owns_playlist(playlist_id) or public.owns_character(character_id));
 
 revoke update on public.fy_playlist_tracks from authenticated;
 grant update (position) on public.fy_playlist_tracks to authenticated;

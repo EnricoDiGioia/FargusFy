@@ -46,7 +46,7 @@ export default function Search() {
   const { active } = useSession();
   const lib = useLibrary();
   const toast = useToast();
-  const target = useMemo(() => (addTo ? (lib.mine ?? []).find((p) => p.id === addTo) : null), [addTo, lib.mine]);
+  const target = useMemo(() => (addTo ? lib.editable.find((p) => p.id === addTo) : null), [addTo, lib.editable]);
 
   // a URL guarda a busca (voltar para a tela mostra o mesmo resultado)
   useEffect(() => {

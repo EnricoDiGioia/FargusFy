@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ArrowDown, ArrowUp, Clock3, Disc3, ExternalLink, Heart, ListEnd, ListPlus, ListStart, MoreHorizontal, Play, Plus, Radio, Trash2, UserRound } from 'lucide-react';
-import { Artwork, Equalizer } from './Art';
+import { Artwork, Avatar, Equalizer } from './Art';
 import { IconButton, MenuItem, Sheet } from './ui';
 import { AddToPlaylist } from './PlaylistSheets';
 import { addToQueue, current, playNext, playTracks, toggle, usePlayer } from '../lib/player';
@@ -95,7 +95,7 @@ function ArtistLinks({ track }) {
   return track.artist;
 }
 
-const TrackRow = memo(function TrackRow({ track, n, isCurrent, isPaused, onPlay, showArt, showAlbum, showAdded, saved, onToggleSaved, onMenu, addLabel, onAdd }) {
+const TrackRow = memo(function TrackRow({ track, n, isCurrent, isPaused, onPlay, showArt, showAlbum, showAdded, showAddedBy, saved, onToggleSaved, onMenu, addLabel, onAdd }) {
   return (
     <div className={`track ${isCurrent ? 'is-current' : ''}`} role="row" onDoubleClick={onPlay}>
       <div className="track__n" role="cell">
@@ -127,7 +127,13 @@ const TrackRow = memo(function TrackRow({ track, n, isCurrent, isPaused, onPlay,
       )}
       {showAdded && (
         <div className="track__added muted" role="cell">
-          {track.added_at ? timeAgo(track.added_at) : ''}
+          {showAddedBy && track.addedBy ? (
+            <Link to={`/u/${track.addedBy.handle}`} className="added-by" title={`Adicionada por @${track.addedBy.handle}`}>
+              <Avatar character={track.addedBy} size={20} />
+              <span>@{track.addedBy.handle}</span>
+            </Link>
+          ) : null}
+          {track.added_at ? <span className="added-when">{timeAgo(track.added_at)}</span> : ''}
         </div>
       )}
       <div className="track__end" role="cell">
@@ -150,7 +156,7 @@ const TrackRow = memo(function TrackRow({ track, n, isCurrent, isPaused, onPlay,
 });
 
 // Lista de músicas. context diz de onde a fila veio (aparece no player)
-export function TrackList({ tracks, context = null, showArt = true, showAlbum = true, showAdded = false, header = true, menuExtra = null, onAdd = null, addLabel }) {
+export function TrackList({ tracks, context = null, showArt = true, showAlbum = true, showAdded = false, showAddedBy = false, header = true, menuExtra = null, onAdd = null, addLabel }) {
   const player = usePlayer();
   const lib = useLibrary();
   const [menu, setMenu] = useState(null); // { track, i }
@@ -166,13 +172,13 @@ export function TrackList({ tracks, context = null, showArt = true, showAlbum = 
   };
 
   return (
-    <div className={`tracks ${showAlbum ? 'tracks--album' : ''} ${showAdded ? 'tracks--added' : ''}`} role="table">
+    <div className={`tracks ${showAlbum ? 'tracks--album' : ''} ${showAdded ? 'tracks--added' : ''} ${showAdded && showAddedBy ? 'tracks--by' : ''}`} role="table">
       {header && (
         <div className="tracks__head" role="row">
           <span role="columnheader">#</span>
           <span role="columnheader">Título</span>
           {showAlbum && <span role="columnheader">Álbum</span>}
-          {showAdded && <span role="columnheader">Adicionada</span>}
+          {showAdded && <span role="columnheader">{showAddedBy ? 'Adicionada por' : 'Adicionada'}</span>}
           <span role="columnheader" className="tracks__head-end">
             <Clock3 size={16} aria-label="Duração" />
           </span>
@@ -191,6 +197,7 @@ export function TrackList({ tracks, context = null, showArt = true, showAlbum = 
             showArt={showArt}
             showAlbum={showAlbum}
             showAdded={showAdded}
+            showAddedBy={showAddedBy}
             saved={lib?.isSaved(t.id)}
             onToggleSaved={lib?.toggleSaved}
             onMenu={(track, idx) => setMenu({ track, i: idx })}

@@ -5,7 +5,7 @@ import { IconButton } from './ui';
 import { setShuffle, toggle, usePlayer } from '../lib/player';
 
 // Cabeçalho de playlist, álbum, artista e perfil (capa + título + degradê)
-export function CollectionHeader({ kind, title, art, colorSeed, description, owner, meta, round = false }) {
+export function CollectionHeader({ kind, title, art, colorSeed, description, owner, collaborators = [], onCollaborators, meta, round = false }) {
   const [a] = paletteFor(colorSeed || title || '');
   return (
     <header className="hero" style={{ '--hero': a }}>
@@ -21,6 +21,18 @@ export function CollectionHeader({ kind, title, art, colorSeed, description, own
               <strong>@{owner.handle}</strong>
               {owner.is_verified && <BadgeCheck size={14} className="verified" />}
             </Link>
+          )}
+          {collaborators.length > 0 && (
+            <button type="button" className="hero__collabs" onClick={onCollaborators} aria-label="Ver colaboradores">
+              <span className="avatar-stack">
+                {collaborators.slice(0, 4).map((c) => (
+                  <Avatar key={c.id} character={c} size={24} />
+                ))}
+              </span>
+              <span>
+                e {collaborators.length === 1 ? `@${collaborators[0].handle}` : `mais ${collaborators.length}`}
+              </span>
+            </button>
           )}
           {meta && <span className="hero__facts">{meta}</span>}
         </div>

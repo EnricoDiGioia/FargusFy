@@ -121,6 +121,7 @@ function Gate({ spotifyResult }) {
             <Route path="album/:id" element={<AlbumPage />} />
             <Route path="artista/:id" element={<ArtistPage />} />
             <Route path="u/:handle" element={<CharacterPage />} />
+            <Route path="u/:handle/curtidas" element={<LikedPage />} />
             <Route path="fila" element={<QueuePage />} />
             <Route path="tocando" element={<NowPlaying />} />
             <Route path="configuracoes" element={<Settings />} />

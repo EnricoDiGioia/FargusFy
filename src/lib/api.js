@@ -13,8 +13,11 @@ function unwrap({ data, error }) {
 // Mensagem de erro em português para mostrar na tela
 export function errorMessage(e) {
   const m = String(e?.message || e || '');
+  if (/fy_playlist_collaborators/i.test(m) && /does not exist|schema cache|Could not find/i.test(m))
+    return 'O banco ainda não tem as playlists colaborativas. Rode o arquivo supabase/fargusfy.sql de novo no SQL Editor do Supabase.';
   if (/fy_|relation .* does not exist|PGRST20[02]|schema cache/i.test(m) && /does not exist|schema cache|Could not find/i.test(m))
     return 'O banco ainda não tem o FargusFy. Rode o arquivo supabase/fargusfy.sql no SQL Editor do Supabase.';
+  if (/O dono já pode editar/i.test(m)) return 'O dono da playlist já pode editar.';
   if (/Limite de/i.test(m)) return m.replace(/^.*?(Limite de[^\n]*).*$/s, '$1');
   if (/row-level security|permission denied/i.test(m)) return 'Você não tem permissão para isso.';
   if (/Failed to fetch|NetworkError|network/i.test(m)) return 'Sem conexão. Confira a internet e tente de novo.';
@@ -43,6 +46,30 @@ export async function me() {
 // --------------------------------------------------------------------
 export async function characterByHandle(handle) {
   return unwrap(await supabase.from('characters').select(CHAR).eq('handle', handle.toLowerCase()).maybeSingle());
+}
+
+// seguidores e seguindo (os mesmos do FargusGram)
+export async function followCounts(characterId) {
+  const head = { count: 'exact', head: true };
+  const [a, b] = await Promise.all([
+    supabase.from('follows').select('*', head).eq('followee_id', characterId),
+    supabase.from('follows').select('*', head).eq('follower_id', characterId),
+  ]);
+  if (a.error) throw a.error;
+  if (b.error) throw b.error;
+  return { followers: a.count ?? 0, following: b.count ?? 0 };
+}
+
+export async function followingOf(characterId, limit = 12) {
+  const rows = unwrap(
+    await supabase
+      .from('follows')
+      .select(`created_at, character:characters!follows_followee_id_fkey(${CHAR})`)
+      .eq('follower_id', characterId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+  );
+  return rows.map((r) => r.character).filter(Boolean);
 }
 
 export async function allCharacters(limit = 40) {
@@ -78,9 +105,48 @@ export async function playlist(id) {
 
 export async function playlistTracks(id) {
   const rows = unwrap(
-    await supabase.from('fy_playlist_tracks').select(`id, position, added_at, ${TRACK_COLS}, added_by`).eq('playlist_id', id).order('position').limit(500)
+    await supabase
+      .from('fy_playlist_tracks')
+      .select(`id, position, added_at, ${TRACK_COLS}, added_by, adder:characters!fy_playlist_tracks_added_by_fkey(${CHAR})`)
+      .eq('playlist_id', id)
+      .order('position')
+      .limit(500)
   );
-  return rows.map(rowToTrack);
+  return rows.map((r) => ({ ...rowToTrack(r), addedBy: r.adder || null }));
+}
+
+// --------------------------------------------------------------------
+// Playlists colaborativas
+// --------------------------------------------------------------------
+export async function collaborators(playlistId) {
+  const rows = unwrap(
+    await supabase
+      .from('fy_playlist_collaborators')
+      .select(`created_at, character:characters!fy_playlist_collaborators_character_id_fkey(${CHAR})`)
+      .eq('playlist_id', playlistId)
+      .order('created_at')
+  );
+  return rows.map((r) => r.character).filter(Boolean);
+}
+
+export async function addCollaborator(playlistId, characterId) {
+  unwrap(await supabase.from('fy_playlist_collaborators').insert({ playlist_id: playlistId, character_id: characterId }));
+}
+
+export async function removeCollaborator(playlistId, characterId) {
+  unwrap(await supabase.from('fy_playlist_collaborators').delete().eq('playlist_id', playlistId).eq('character_id', characterId));
+}
+
+// playlists em que o personagem colabora
+export async function collabPlaylistsOf(characterId) {
+  const rows = unwrap(
+    await supabase
+      .from('fy_playlist_collaborators')
+      .select(`created_at, playlist:fy_playlists!fy_playlist_collaborators_playlist_id_fkey(${PLAYLIST})`)
+      .eq('character_id', characterId)
+      .order('created_at', { ascending: false })
+  );
+  return rows.map((r) => r.playlist).filter(Boolean);
 }
 
 export async function createPlaylist({ characterId, name, description = '', isPublic = true }) {
@@ -153,9 +219,9 @@ export async function setFollow(characterId, playlistId, on) {
 // --------------------------------------------------------------------
 // Músicas curtidas
 // --------------------------------------------------------------------
-export async function savedTracks(characterId) {
+export async function savedTracks(characterId, limit = 2000) {
   const rows = unwrap(
-    await supabase.from('fy_saved_tracks').select(`saved_at, ${TRACK_COLS}`).eq('character_id', characterId).order('saved_at', { ascending: false }).limit(2000)
+    await supabase.from('fy_saved_tracks').select(`saved_at, ${TRACK_COLS}`).eq('character_id', characterId).order('saved_at', { ascending: false }).limit(limit)
   );
   return rows.map((r) => ({ ...rowToTrack(r), added_at: r.saved_at }));
 }
