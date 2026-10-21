@@ -16,7 +16,7 @@ export const SUPABASE_KEY = env.VITE_SUPABASE_KEY || 'sb_publishable_YvM0xKvUvhg
 // Client ID do app no painel do Spotify (developer.spotify.com/dashboard).
 // Também é público: o segredo (Client secret) fica só na função "spotify"
 // do Supabase, nunca aqui.
-export const SPOTIFY_CLIENT_ID = env.VITE_SPOTIFY_CLIENT_ID || 'COLE-AQUI-O-CLIENT-ID';
+export const SPOTIFY_CLIENT_ID = env.VITE_SPOTIFY_CLIENT_ID || '32fcfd0632d84f6196be0016303f2fe9';
 
 // Endereço do FargusGram (para os links de perfil e o botão de entrar)
 export const FARGUSGRAM_URL = env.VITE_FARGUSGRAM_URL || 'https://enricodigioia.github.io/FargusGram/';
