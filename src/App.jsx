@@ -14,6 +14,7 @@ import CharacterPage from './pages/CharacterPage';
 import QueuePage from './pages/QueuePage';
 import NowPlaying from './pages/NowPlaying';
 import Settings, { autoNowEnabled } from './pages/Settings';
+import WrappedPage from './pages/WrappedPage';
 import Login from './pages/Login';
 import { SessionProvider, useSession } from './state/session';
 import { LibraryProvider } from './state/library';
@@ -21,6 +22,7 @@ import { ToastProvider, useToast } from './state/toast';
 import { isConfigured } from './lib/supabase';
 import { current, getState, livePosition, primeRestoredTrack, usePlayer } from './lib/player';
 import * as api from './lib/api';
+import { setListeningCharacter, startListening } from './lib/listening';
 import { FARGUSGRAM_URL } from './config';
 
 // "Ouvindo" no FargusGram: grava a música assim que ela começa a tocar de verdade
@@ -52,6 +54,18 @@ function AutoNowPlaying() {
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [t?.id, active?.id, player.isPaused]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+// Conta o que o personagem ativo ouve, para a Retrospectiva
+function ListeningRecorder() {
+  const { active } = useSession();
+  useEffect(() => {
+    startListening();
+  }, []);
+  useEffect(() => {
+    setListeningCharacter(active?.id || null);
+  }, [active?.id]);
   return null;
 }
 
@@ -116,6 +130,7 @@ function Gate({ spotifyResult }) {
   return (
     <LibraryProvider>
       <AutoNowPlaying />
+      <ListeningRecorder />
       <SpotifyLoginResult result={spotifyResult} />
       <HashRouter>
         <Routes>
@@ -129,6 +144,8 @@ function Gate({ spotifyResult }) {
             <Route path="artista/:id" element={<ArtistPage />} />
             <Route path="u/:handle" element={<CharacterPage />} />
             <Route path="u/:handle/curtidas" element={<LikedPage />} />
+            <Route path="retrospectiva" element={<WrappedPage />} />
+            <Route path="u/:handle/retrospectiva" element={<WrappedPage />} />
             <Route path="fila" element={<QueuePage />} />
             <Route path="tocando" element={<NowPlaying />} />
             <Route path="configuracoes" element={<Settings />} />

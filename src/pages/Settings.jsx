@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { BadgeCheck, Check, Copy, Database, LogOut, Palette, Radio, Speaker } from 'lucide-react';
+import { BadgeCheck, Check, Copy, Database, LogOut, Palette, Radio, Sparkles, Speaker } from 'lucide-react';
 import { Avatar } from '../components/Art';
 import { Button, ErrorBox, useAsync } from '../components/ui';
 import * as api from '../lib/api';
 import { connect, disconnect, hasClientId, isConnected, onAuthChange, redirectUri, userApi } from '../lib/spotifyAuth';
 import { setMode, usePlayer } from '../lib/player';
 import { local } from '../lib/storage';
+import { listeningEnabled, setListeningEnabled } from '../lib/listening';
+import { Link } from 'react-router';
 import { useSession } from '../state/session';
 import { useToast } from '../state/toast';
 import { FARGUSGRAM_URL } from '../config';
@@ -23,6 +25,7 @@ export default function Settings() {
   const [profile, setProfile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [autoNow, setAutoNow] = useState(autoNowEnabled());
+  const [listenOn, setListenOn] = useState(listeningEnabled());
   const usage = useAsync(() => api.usage(), []);
 
   useEffect(() => onAuthChange(setConnected), []);
@@ -151,6 +154,29 @@ export default function Settings() {
             Apagar o "ouvindo agora" de @{active.handle}
           </Button>
         )}
+      </section>
+
+      <section className="panel">
+        <h2>
+          <Sparkles size={20} /> Retrospectiva
+        </h2>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={listenOn}
+            onChange={(e) => {
+              setListeningEnabled(e.target.checked);
+              setListenOn(e.target.checked);
+            }}
+          />
+          <span>Contar o que eu ouço neste aparelho na Retrospectiva</span>
+        </label>
+        <p className="muted">
+          Guarda só os totais por música, dia e hora, e envia em lotes a cada 5 minutos de música. Todo o grupo pode ver a Retrospectiva de cada personagem.
+        </p>
+        <Link to="/retrospectiva" className="btn btn--ghost btn--small">
+          <Sparkles size={16} /> Ver a Retrospectiva
+        </Link>
       </section>
 
       <section className="panel">

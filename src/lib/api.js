@@ -13,6 +13,9 @@ function unwrap({ data, error }) {
 // Mensagem de erro em português para mostrar na tela
 export function errorMessage(e) {
   const m = String(e?.message || e || '');
+  if (/fy_wrapped|fy_listening/i.test(m) && /does not exist|schema cache|Could not find/i.test(m))
+    return 'O banco ainda não tem a Retrospectiva. Rode o arquivo supabase/fargusfy.sql de novo no SQL Editor do Supabase.';
+  if (/Período inválido/i.test(m)) return 'Período inválido.';
   if (/fy_playlist_collaborators/i.test(m) && /does not exist|schema cache|Could not find/i.test(m))
     return 'O banco ainda não tem as playlists colaborativas. Rode o arquivo supabase/fargusfy.sql de novo no SQL Editor do Supabase.';
   if (/fy_|relation .* does not exist|PGRST20[02]|schema cache/i.test(m) && /does not exist|schema cache|Could not find/i.test(m))
@@ -293,6 +296,11 @@ export async function nowPlayingList(limit = 20) {
 export async function nowPlayingOf(characterId) {
   const r = unwrap(await supabase.from('fy_now_playing').select(`updated_at, track_id, title, artist, album_id, artwork`).eq('character_id', characterId).maybeSingle());
   return r ? { at: r.updated_at, track: rowToTrack(r) } : null;
+}
+
+// Retrospectiva de um personagem num período [from, to) (datas 'AAAA-MM-DD')
+export async function wrapped(characterId, from, to) {
+  return unwrap(await supabase.rpc('fy_wrapped', { p_character: characterId, p_from: from, p_to: to }));
 }
 
 export async function usage() {

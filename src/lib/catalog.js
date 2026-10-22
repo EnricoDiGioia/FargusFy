@@ -178,6 +178,15 @@ export async function getArtist(id) {
   return { ...toArtist(a), albums: (albums.items || []).map(toAlbum).filter(Boolean), moreAlbums: !!albums.next };
 }
 
+// Foto de um artista (para a Retrospectiva): pelo id, ou buscando pelo nome
+export async function artistImage(name, id = null) {
+  if (id) return toArtist(await call(`artists/${id}`))?.image ?? null;
+  const data = await call('search', { q: name, type: 'artist', limit: 5 });
+  const list = (data.artists?.items || []).map(toArtist).filter(Boolean);
+  const norm = (s) => s.toLocaleLowerCase('pt-BR').trim();
+  return (list.find((a) => norm(a.name) === norm(name)) || null)?.image ?? null;
+}
+
 export async function getArtistAlbums(id, offset) {
   const page = await call(`artists/${id}/albums`, { include_groups: 'album,single,compilation', limit: 10, offset, market: 'BR' });
   return { albums: (page.items || []).map(toAlbum).filter(Boolean), more: !!page.next };

@@ -1,5 +1,5 @@
 import { Link } from 'react-router';
-import { Music2, Play } from 'lucide-react';
+import { Music2, Play, Sparkles } from 'lucide-react';
 import { Artwork, Avatar, LikedCover, Mosaic } from '../components/Art';
 import { CharacterCard, PlaylistCard, Shelf } from '../components/Cards';
 import { ErrorBox, Loading, useAsync } from '../components/ui';
@@ -74,6 +74,16 @@ export default function Home() {
           <QuickTile key={p.id} to={`/playlist/${p.id}`} art={<Mosaic covers={p.covers} seed={p.id} size={56} />} title={p.name} onPlay={p.track_count ? () => play(p) : null} />
         ))}
       </div>
+
+      {active && (
+        <Link to="/retrospectiva" className="wr-banner">
+          <Sparkles size={22} aria-hidden="true" />
+          <span>
+            <strong>Retrospectiva {new Date().getFullYear()}</strong>
+            <small>O que @{active.handle} mais ouviu, em minutos, artistas e músicas</small>
+          </span>
+        </Link>
+      )}
 
       {feed.loading && <Loading />}
       {feed.error && <ErrorBox onRetry={feed.reload}>{api.errorMessage(feed.error)}</ErrorBox>}

@@ -24,6 +24,7 @@ import {
   Volume1,
   Volume2,
   VolumeX,
+  Sparkles,
 } from 'lucide-react';
 import { Artwork, Avatar, LikedCover, Mosaic } from './Art';
 import { FyMark, Wordmark } from './Brand';
@@ -116,6 +117,10 @@ function Sidebar() {
         <NavLink to="/buscar" className="side-link">
           <Search size={24} />
           Buscar
+        </NavLink>
+        <NavLink to="/retrospectiva" className="side-link">
+          <Sparkles size={24} />
+          Retrospectiva
         </NavLink>
       </div>
       <div className="sidebar__box sidebar__lib">

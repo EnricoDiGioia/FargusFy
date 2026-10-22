@@ -28,6 +28,11 @@ App de música no estilo Spotify para os personagens de uma campanha de RPG. Cad
 - "Ouvindo agora" automático, gravado poucos segundos depois que a música começa; aparece no início do FargusFy e no perfil do personagem no FargusGram
 - Início com o que a campanha está ouvindo e as playlists mais recentes
 
+**Retrospectiva**
+- O resumo do que cada personagem ouviu no ano ou no mês, no estilo do Spotify Wrapped: minutos ouvidos, músicas e artistas mais ouvidos, dia e horário favoritos, tipo de ouvinte e a posição entre os personagens da campanha
+- Telas animadas que passam como stories, com um cartão final e um botão para criar a playlist das mais ouvidas
+- Qualquer jogador vê a Retrospectiva de qualquer personagem; a contagem pode ser desligada em Configurações
+
 **App**
 - Barra lateral e player embaixo no computador; navegação e mini player embaixo no celular
 - Instala na tela inicial do celular, como o FargusGram
@@ -65,6 +70,7 @@ As telas nunca falam direto com o Spotify: elas mandam comandos para `lib/player
 │   │   ├── player.js       fila e os dois players
 │   │   ├── catalog.js      busca, álbum e artista (pela função "spotify")
 │   │   ├── spotifyAuth.js  login PKCE do player completo
+│   │   ├── listening.js    contagem do que é ouvido (Retrospectiva)
 │   │   └── api.js          playlists, curtidas, colaboradores e "ouvindo agora"
 │   ├── state/              sessão, biblioteca do personagem e avisos
 │   ├── styles/app.css      visual e temas
@@ -114,8 +120,12 @@ O FargusFy depende de um banco do FargusGram já instalado.
 | `fy_playlist_follows` | Playlists que cada personagem segue |
 | `fy_saved_tracks` | Músicas curtidas |
 | `fy_now_playing` | Uma linha por personagem com a última música tocada |
+| `fy_listening` | Retrospectiva: minutos e reproduções por personagem, mês e música |
+| `fy_listening_days` / `fy_listening_hours` | Retrospectiva: minutos por dia e por hora do dia |
 
 A música é guardada como id do Spotify, título, artista e link da capa, uns 300 bytes. Áudio e imagens não passam pelo Supabase.
+
+A Retrospectiva não guarda cada vez que uma música tocou, só os totais. O app soma o tempo tocado no aparelho e envia em lotes pela função `fy_log_listening`, que só aceita os personagens do próprio jogador; a função `fy_wrapped` devolve o resumo pronto de um período.
 
 As posições das músicas são fracionárias, então mover uma música altera uma linha só. As regras de Row Level Security fazem cada jogador mexer só nas playlists dos próprios personagens ou nas que eles colaboram; só o dono muda nome, descrição, visibilidade e participantes.
 
@@ -134,6 +144,7 @@ O workflow `.github/workflows/deploy.yml` gera o site e publica no GitHub Pages 
 | Colaboradores | 10 por playlist | Idem |
 | Busca | Uma chamada da função por busca | Só busca quando a pessoa para de digitar e guarda as respostas por 30 min; o plano dá 500 mil chamadas por mês |
 | "Ouvindo agora" | Uma linha por personagem | Sobrescrita a cada música; renovada a cada 5 min enquanto toca |
+| Retrospectiva | Até 1.000 músicas diferentes por personagem e mês | Só totais; uma escrita a cada 5 min de música |
 
 Em **Configurações → Espaço no banco**, o app mostra quanto o FargusFy ocupa e o tamanho do banco inteiro.
 

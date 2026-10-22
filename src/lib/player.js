@@ -50,7 +50,7 @@ function set(patch) {
   subs.forEach((fn) => fn());
   if (SAVED_FIELDS.some((k) => k in patch)) scheduleSave();
 }
-const subscribe = (fn) => {
+export const subscribe = (fn) => {
   subs.add(fn);
   return () => subs.delete(fn);
 };

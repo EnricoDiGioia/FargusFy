@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router';
-import { ExternalLink, Heart, Play, Radio } from 'lucide-react';
+import { ExternalLink, Heart, Play, Radio, Sparkles } from 'lucide-react';
 import { Artwork, Avatar, LikedCover } from '../components/Art';
 import { CharacterCard, PlaylistCard, Shelf } from '../components/Cards';
 import { CollectionHeader } from '../components/Header';
@@ -84,6 +84,9 @@ export default function CharacterPage() {
             <Play size={24} fill="currentColor" />
           </button>
         )}
+        <Link className="btn btn--ghost btn--small" to={`/u/${c.handle}/retrospectiva`}>
+          <Sparkles size={16} /> Retrospectiva
+        </Link>
         <a className="btn btn--ghost btn--small" href={`${FARGUSGRAM_URL}#/u/${c.handle}`}>
           <ExternalLink size={16} /> Ver no FargusGram
         </a>
